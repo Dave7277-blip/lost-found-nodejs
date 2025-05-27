@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lost & Found Web App</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="top-bar">
+        <h2>Lost & Found</h2>
+        <button id="darkModeToggle">🌙</button>
+      </div>
+
+      <form id="itemForm" enctype="multipart/form-data">
+        <label>Type</label>
+        <select id="type" name="type" required>
+          <option value="found">Found</option>
+          <option value="lost">Lost</option>
+        </select>
+
+        <label>Description</label>
+        <textarea id="description" name="description" required></textarea>
+
+        <label>Image 1</label>
+        <input
+          type="file"
+          id="image1"
+          name="image1"
+          accept="image/*"
+          required
+        />
+
+        <label>Image 2</label>
+        <input type="file" id="image2" name="image2" accept="image/*" />
+
+        <label>Your Name</label>
+        <input type="text" id="name" name="name" required />
+
+        <label>Phone Number</label>
+        <input type="tel" id="phone" name="phone" required />
+
+        <button type="submit">Post Item</button>
+      </form>
+
+      <input type="text" id="search" placeholder="Search by description..." />
+      <h2>Items</h2>
+      <div id="foundItems"></div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
