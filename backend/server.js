@@ -27,11 +27,11 @@ db.query(`
 });
 
 app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), (req, res) => {
-  const { type, description, name, phone } = req.body;
+  const { type, description, name, phone, date, location } = req.body;
   const image1 = req.files?.image1?.[0]?.buffer || null;
   const image2 = req.files?.image2?.[0]?.buffer || null;
 
-  const sql = `INSERT INTO items (type, description, image1, image2, name, phone) VALUES (?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO items (type, description, date, location, image1, image2, name, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
   db.query(sql, [type, description, image1, image2, name, phone], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
 
@@ -39,6 +39,8 @@ app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), 
       id: result.insertId,
       type,
       description,
+      date,
+      location,
       image1: image1 ? image1.toString('base64') : '',
       image2: image2 ? image2.toString('base64') : '',
       name,

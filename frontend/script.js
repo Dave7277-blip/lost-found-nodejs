@@ -37,7 +37,7 @@ window.onload = () => {
       if (newItem.error) return alert('Failed: ' + newItem.error);
       displayItem(newItem);
       form.reset();
-      alert("Thank you! Your item has been submitted.");
+      alert("Item posted successfully!");
     });
   
     search.addEventListener('input', () => {
