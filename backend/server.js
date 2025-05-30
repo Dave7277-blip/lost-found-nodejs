@@ -60,44 +60,41 @@ initializeDatabase().then(connection => {
   app.locals.db = connection;
 
   // API endpoints
-  app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
-    try {
-      const { type, description, name, phone, date, location } = req.body;
-      const image1 = req.files?.image1?.[0]?.buffer || null;
-      const image2 = req.files?.image2?.[0]?.buffer || null;
+// POST route for items (make sure this exists)
+app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
+  try {
+    const { type, description, name, phone } = req.body;
+    const image1 = req.files?.image1?.[0]?.buffer || null;
+    const image2 = req.files?.image2?.[0]?.buffer || null;
 
-      const [result] = await connection.query(
-        `INSERT INTO items (type, description, date, location, image1, image2, name, phone) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [type, description, date, location, image1, image2, name, phone]
-      );
+    const [result] = await db.query(
+      `INSERT INTO items (type, description, name, phone, image1, image2) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [type, description, name, phone, image1, image2]
+    );
 
-      res.json({
-        id: result.insertId,
-        type,
-        description,
-        date,
-        location,
-        name,
-        phone,
-        image1: image1 ? image1.toString('base64') : null,
-        image2: image2 ? image2.toString('base64') : null
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: err.message });
-    }
-  });
+    res.status(201).json({
+      id: result.insertId,
+      type,
+      description,
+      name,
+      phone
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  app.get('/api/items', async (req, res) => {
-    try {
-      const [results] = await connection.query('SELECT * FROM items ORDER BY created_at DESC');
-      
-      const formatted = results.map(row => ({
-        ...row,
-        image1: row.image1?.toString('base64'),
-        image2: row.image2?.toString('base64')
-      }));
+// GET route for items
+app.get('/api/items', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM items ORDER BY id DESC');
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
       res.json(formatted);
     } catch (err) {
