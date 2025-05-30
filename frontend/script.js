@@ -39,29 +39,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
     const formData = new FormData(form);
     
-    try {
-      const res = await fetch(`${apiBaseUrl}/items`, {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to submit item');
-      }
-      
-      const newItem = await res.json();
-      displayItem(newItem);
-      form.reset();
-      alert("Item posted successfully!");
-    } catch (err) {
-      console.error('Submission error:', err);
-      alert(`Failed to post item: ${err.message}`);
+    const response = await fetch(`${apiBaseUrl}/items`, {
+      method: 'POST',
+      body: formData // No headers needed for FormData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to submit');
     }
-  });
+
+    const newItem = await response.json();
+    displayItem(newItem);
+    form.reset();
+    alert("Item posted successfully!");
+  } catch (err) {
+    console.error('Submission error:', err);
+    alert(`Error: ${err.message}`);
+  }
+});
 
   search.addEventListener('input', () => {
     const term = search.value.toLowerCase();
