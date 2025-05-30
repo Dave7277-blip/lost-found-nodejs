@@ -6,7 +6,14 @@ const mysql = require('mysql2/promise'); // Using promise-based API
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000', // For local development
+    'https://your-frontend-url.netlify.app' // Your live frontend
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
