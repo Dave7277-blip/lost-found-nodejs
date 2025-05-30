@@ -3,34 +3,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const foundItems = document.getElementById('foundItems');
   const search = document.getElementById('search');
   const toggle = document.getElementById('darkModeToggle');
-  const apiBaseUrl = 'https://lost-found-nodejs-2.onrender.com';
+
+  // USE YOUR ACTUAL RENDER BACKEND URL HERE ▼
+  const apiBaseUrl = 'https://your-render-backend-url.onrender.com/api';
+
+  // Load items on page load
+  loadItems();
 
   async function loadItems() {
     try {
-      const res = await fetch(`${apiBaseUrl}/items`);
-      if (!res.ok) throw new Error('Failed to fetch items');
-      const items = await res.json();
+      const response = await fetch(`${apiBaseUrl}/items`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const items = await response.json();
       foundItems.innerHTML = '';
       items.forEach(displayItem);
     } catch (err) {
       console.error('Error loading items:', err);
-      alert('Failed to load items. Please try again later.');
+      foundItems.innerHTML = `
+        <div class="error">
+          Failed to load items: ${err.message}
+          <button onclick="loadItems()">Retry</button>
+        </div>
+      `;
     }
   }
 
   function displayItem(item) {
-    if (!item.type) return;
-
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
       <span class="tag ${item.type}">${item.type.toUpperCase()}</span>
       <p><strong>Description:</strong> ${item.description}</p>
-      <p><strong>Date:</strong> ${item.date}</p>
-      <p><strong>Location:</strong> ${item.location}</p>
+      ${item.date ? `<p><strong>Date:</strong> ${item.date}</p>` : ''}
+      ${item.location ? `<p><strong>Location:</strong> ${item.location}</p>` : ''}
       <div class="images">
-        ${item.image1 ? `<img src="data:image/jpeg;base64,${item.image1}" alt="Item image">` : ''}
-        ${item.image2 ? `<img src="data:image/jpeg;base64,${item.image2}" alt="Additional image">` : ''}
+        ${item.image1 ? `<img src="data:image/jpeg;base64,${item.image1}" alt="Item">` : ''}
+        ${item.image2 ? `<img src="data:image/jpeg;base64,${item.image2}" alt="Additional photo">` : ''}
       </div>
       <p><strong>Reported by:</strong> ${item.name}</p>
       <p><strong>Contact:</strong> ${item.phone}</p>
@@ -39,48 +48,53 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  try {
-    const formData = new FormData(form);
+    e.preventDefault();
     
-    const response = await fetch(`${apiBaseUrl}/items`, {
-      method: 'POST',
-      body: formData // No headers needed for FormData
-    });
+    try {
+      const formData = new FormData(form);
+      
+      // For debugging: log form data
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to submit');
+      const response = await fetch(`${apiBaseUrl}/items`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Submission failed');
+      }
+
+      const newItem = await response.json();
+      displayItem(newItem);
+      form.reset();
+      alert("Item posted successfully!");
+      loadItems(); // Refresh the list
+    } catch (err) {
+      console.error('Submission error:', err);
+      alert(`Error: ${err.message}`);
     }
+  });
 
-    const newItem = await response.json();
-    displayItem(newItem);
-    form.reset();
-    alert("Item posted successfully!");
-  } catch (err) {
-    console.error('Submission error:', err);
-    alert(`Error: ${err.message}`);
-  }
-});
-
+  // Search functionality
   search.addEventListener('input', () => {
     const term = search.value.toLowerCase();
-    Array.from(foundItems.children).forEach(item => {
-      const text = item.innerText.toLowerCase();
-      item.style.display = text.includes(term) ? '' : 'none';
+    document.querySelectorAll('.item').forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none';
     });
   });
 
+  // Dark mode toggle
   toggle.addEventListener('click', () => {
     document.body.classList.toggle('dark');
     localStorage.setItem('darkMode', document.body.classList.contains('dark'));
   });
 
-  // Load dark mode preference
+  // Initialize dark mode
   if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark');
   }
-
-  loadItems();
 });
