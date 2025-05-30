@@ -98,6 +98,26 @@ initializeDatabase().then(connection => {
       res.status(500).json({ error: err.message });
     }
   });
+// Serve frontend files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend')));
+  
+  // Handle React routing, return all requests to frontend
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
+  });
+}
+
+// Basic test route (always include this)
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'Backend is running',
+    available_routes: {
+      items: '/api/items',
+      post_item: '/api/items (POST)'
+    }
+  });
+});
 
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
