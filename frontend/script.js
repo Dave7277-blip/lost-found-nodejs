@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggle = document.getElementById('darkModeToggle');
 
   // USE YOUR ACTUAL RENDER BACKEND URL HERE ▼
-  const apiBaseUrl = 'https://your-render-backend-url.onrender.com/api';
+  const apiBaseUrl = 'https://lost-found-nodejs-2.onrender.com';
 
   // Load items on page load
   loadItems();
