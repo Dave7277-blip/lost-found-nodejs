@@ -2,65 +2,106 @@ const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
-const db = require('./db');
+const mysql = require('mysql2/promise'); // Using promise-based API
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const upload = multer({ storage: multer.memoryStorage() });
-app.use(express.static(path.join(__dirname, '../frontend')));
 
-db.query(`
-  CREATE TABLE IF NOT EXISTS items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    type ENUM('lost', 'found') NOT NULL,
-    description TEXT,
-    image1 LONGBLOB,
-    image2 LONGBLOB,
-    name VARCHAR(100),
-    phone VARCHAR(20)
-  )
-`, (err) => {
-  if (err) throw err;
-  console.log("Table 'items' is ready");
-});
+// Database connection
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT
+};
 
-app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), (req, res) => {
-  const { type, description, name, phone, date, location } = req.body;
-  const image1 = req.files?.image1?.[0]?.buffer || null;
-  const image2 = req.files?.image2?.[0]?.buffer || null;
+async function initializeDatabase() {
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        type ENUM('lost', 'found') NOT NULL,
+        description TEXT,
+        date DATE,
+        location VARCHAR(255),
+        image1 LONGBLOB,
+        image2 LONGBLOB,
+        name VARCHAR(100),
+        phone VARCHAR(20),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log("Database initialized");
+    return connection;
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+    throw err;
+  }
+}
 
-  const sql = `INSERT INTO items (type, description, date, location, image1, image2, name, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-  db.query(sql, [type, description, image1, image2, name, phone], (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
+// Initialize DB and start server
+initializeDatabase().then(connection => {
+  app.locals.db = connection;
 
-    res.json({
-      id: result.insertId,
-      type,
-      description,
-      date,
-      location,
-      image1: image1 ? image1.toString('base64') : '',
-      image2: image2 ? image2.toString('base64') : '',
-      name,
-      phone
-    });
+  // API endpoints
+  app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
+    try {
+      const { type, description, name, phone, date, location } = req.body;
+      const image1 = req.files?.image1?.[0]?.buffer || null;
+      const image2 = req.files?.image2?.[0]?.buffer || null;
+
+      const [result] = await connection.query(
+        `INSERT INTO items (type, description, date, location, image1, image2, name, phone) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [type, description, date, location, image1, image2, name, phone]
+      );
+
+      res.json({
+        id: result.insertId,
+        type,
+        description,
+        date,
+        location,
+        name,
+        phone,
+        image1: image1 ? image1.toString('base64') : null,
+        image2: image2 ? image2.toString('base64') : null
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
   });
-});
 
-app.get('/api/items', (req, res) => {
-  db.query('SELECT * FROM items ORDER BY id DESC', (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
+  app.get('/api/items', async (req, res) => {
+    try {
+      const [results] = await connection.query('SELECT * FROM items ORDER BY created_at DESC');
+      
+      const formatted = results.map(row => ({
+        ...row,
+        image1: row.image1?.toString('base64'),
+        image2: row.image2?.toString('base64')
+      }));
 
-    const formatted = results.map(row => ({
-      ...row,
-      image1: row.image1?.toString('base64'),
-      image2: row.image2?.toString('base64')
-    }));
-
-    res.json(formatted);
+      res.json(formatted);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
   });
-});
 
-app.listen(5000, () => console.log('Server running on http://localhost:5000'));
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
