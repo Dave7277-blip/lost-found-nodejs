@@ -3,9 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const foundItems = document.getElementById('foundItems');
   const search = document.getElementById('search');
   const toggle = document.getElementById('darkModeToggle');
-  const apiBaseUrl = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api' 
-    : 'https://your-render-backend-url.onrender.com/api';
+  const apiBaseUrl = 'https://lost-found-nodejs-2.onrender.com';
 
   async function loadItems() {
     try {
