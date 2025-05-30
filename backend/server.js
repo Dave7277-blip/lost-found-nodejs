@@ -8,8 +8,8 @@ require('dotenv').config();
 const app = express();
 app.use(cors({
   origin: [
-    'http://localhost:3000', // For local development
-    'https://your-frontend-url.netlify.app' // Your live frontend
+    'https://effervescent-ganache-80a158.netlify.app', // Your Netlify frontend
+    'http://localhost:3000' // For local development
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
