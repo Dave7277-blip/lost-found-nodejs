@@ -61,6 +61,7 @@ initializeDatabase().then(connection => {
 
   // API endpoints
 // POST route for items (make sure this exists)
+// POST route for items (make sure this exists)
 app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
   try {
     const { type, description, name, phone } = req.body;
@@ -94,7 +95,7 @@ app.get('/api/items', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+});;
 
       res.json(formatted);
     } catch (err) {
