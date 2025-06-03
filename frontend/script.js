@@ -4,28 +4,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const search = document.getElementById('search');
   const toggle = document.getElementById('darkModeToggle');
 
-  // USE YOUR ACTUAL RENDER BACKEND URL HERE ▼
-  const apiBaseUrl = 'https://lost-found-nodejs-2.onrender.com';
+  // USE YOUR ACTUAL RENDER BACKEND URL ▼
+  const apiBaseUrl = 'https://lost-found-nodejs-33gt.onrender.com';
 
-  // Load items on page load
+  // Load items on startup
   loadItems();
 
   async function loadItems() {
     try {
+      showLoading();
       const response = await fetch(`${apiBaseUrl}/items`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to load items');
+      }
+
       const items = await response.json();
       foundItems.innerHTML = '';
       items.forEach(displayItem);
     } catch (err) {
-      console.error('Error loading items:', err);
-      foundItems.innerHTML = `
-        <div class="error">
-          Failed to load items: ${err.message}
-          <button onclick="loadItems()">Retry</button>
-        </div>
-      `;
+      console.error('Load Error:', err);
+      showError(err.message);
     }
   }
 
@@ -51,12 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     
     try {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Posting...';
+
       const formData = new FormData(form);
       
-      // For debugging: log form data
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
+      // Log form data for debugging
+      console.log('Submitting:', Object.fromEntries(formData.entries()));
 
       const response = await fetch(`${apiBaseUrl}/items`, {
         method: 'POST',
@@ -69,32 +71,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const newItem = await response.json();
-      displayItem(newItem);
+      console.log('Posted:', newItem);
+      
       form.reset();
-      alert("Item posted successfully!");
-      loadItems(); // Refresh the list
+      loadItems(); // Refresh list
+      alert('Item posted successfully!');
     } catch (err) {
-      console.error('Submission error:', err);
+      console.error('Submit Error:', err);
       alert(`Error: ${err.message}`);
+    } finally {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add My Report';
     }
   });
 
-  // Search functionality
-  search.addEventListener('input', () => {
-    const term = search.value.toLowerCase();
-    document.querySelectorAll('.item').forEach(item => {
-      item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none';
-    });
-  });
-
-  // Dark mode toggle
-  toggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-  });
-
-  // Initialize dark mode
-  if (localStorage.getItem('darkMode') === 'true') {
-    document.body.classList.add('dark');
+  // Helper functions
+  function showLoading() {
+    foundItems.innerHTML = '<div class="loading">Loading items...</div>';
   }
+
+  function showError(message) {
+    foundItems.innerHTML = `
+      <div class="error">
+        ${message}
+        <button onclick="loadItems()">Retry</button>
+      </div>
+    `;
+  }
+
+  // Search and dark mode functionality remains same
+  search.addEventListener('input', filterItems);
+  toggle.addEventListener('click', toggleDarkMode);
 });
+
+// Additional helper functions
+function filterItems() {
+  const term = this.value.toLowerCase();
+  document.querySelectorAll('.item').forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none';
+  });
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+}
+
+// Initialize dark mode
+if (localStorage.getItem('darkMode') === 'true') {
+  document.body.classList.add('dark');
+}
