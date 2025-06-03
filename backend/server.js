@@ -1,77 +1,67 @@
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
-const path = require('path');
-const mysql = require('mysql2/promise'); // Using promise-based API
 require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const mysql = require('mysql2/promise');
+const path = require('path');
 
 const app = express();
-app.use(cors({
-  origin: [
-    'https://effervescent-ganache-80a158.netlify.app', // Your Netlify frontend
-    'http://localhost:3000' // For local development
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Database connection
-const dbConfig = {
+// Database Connection Pool
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT
-};
+  waitForConnections: true,
+  connectionLimit: 10
+});
 
-async function initializeDatabase() {
+// Middleware
+app.use(cors({
+  origin: [
+    'https://effervescent-ganache-80a158.netlify.app',
+    'http://localhost:3000'
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
+app.use(express.json());
+
+// File Upload Configuration
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Routes
+app.get('/api/items', async (req, res) => {
   try {
-    const connection = await mysql.createConnection(dbConfig);
-    
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        type ENUM('lost', 'found') NOT NULL,
-        description TEXT,
-        date DATE,
-        location VARCHAR(255),
-        image1 LONGBLOB,
-        image2 LONGBLOB,
-        name VARCHAR(100),
-        phone VARCHAR(20),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    console.log("Database initialized");
-    return connection;
+    const [results] = await pool.query('SELECT * FROM items ORDER BY created_at DESC');
+    const items = results.map(item => ({
+      ...item,
+      image1: item.image1?.toString('base64'),
+      image2: item.image2?.toString('base64')
+    }));
+    res.json(items);
   } catch (err) {
-    console.error("Database initialization failed:", err);
-    throw err;
+    console.error('DB Error:', err);
+    res.status(500).json({ error: 'Database error' });
   }
-}
+});
 
-// Initialize DB and start server
-initializeDatabase().then(connection => {
-  app.locals.db = connection;
-
-  // API endpoints
-// POST route for items (make sure this exists)
-// POST route for items (make sure this exists)
-app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), async (req, res) => {
+app.post('/api/items', upload.fields([
+  { name: 'image1', maxCount: 1 },
+  { name: 'image2', maxCount: 1 }
+]), async (req, res) => {
   try {
-    const { type, description, name, phone } = req.body;
-    const image1 = req.files?.image1?.[0]?.buffer || null;
-    const image2 = req.files?.image2?.[0]?.buffer || null;
+    const { type, description, name, phone, date, location } = req.body;
+    const image1 = req.files?.image1?.[0]?.buffer;
+    const image2 = req.files?.image2?.[0]?.buffer;
 
-    const [result] = await db.query(
-      `INSERT INTO items (type, description, name, phone, image1, image2) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [type, description, name, phone, image1, image2]
+    const [result] = await pool.query(
+      `INSERT INTO items 
+      (type, description, name, phone, date, location, image1, image2) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [type, description, name, phone, date, location, image1, image2]
     );
 
     res.status(201).json({
@@ -79,54 +69,24 @@ app.post('/api/items', upload.fields([{ name: 'image1' }, { name: 'image2' }]), 
       type,
       description,
       name,
-      phone
+      phone,
+      date,
+      location,
+      image1: image1?.toString('base64'),
+      image2: image2?.toString('base64')
     });
   } catch (err) {
-    console.error(err);
+    console.error('Submission Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET route for items
-app.get('/api/items', async (req, res) => {
-  try {
-    const [results] = await db.query('SELECT * FROM items ORDER BY id DESC');
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});;
-
-      res.json(formatted);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-// Serve frontend files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend')));
-  
-  // Handle React routing, return all requests to frontend
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
-  });
-}
-
-// Basic test route (always include this)
-app.get('/', (req, res) => {
-  res.json({ 
-    status: 'Backend is running',
-    available_routes: {
-      items: '/api/items',
-      post_item: '/api/items (POST)'
-    }
-  });
-});
-
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}).catch(err => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  // Test DB connection
+  pool.query("SELECT 1")
+    .then(() => console.log("✅ Database connected"))
+    .catch(err => console.error("❌ Database connection failed:", err));
 });
