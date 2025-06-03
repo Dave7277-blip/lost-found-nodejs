@@ -1,3 +1,46 @@
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* Error state */
+.error {
+  background: #ffebee;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.error button {
+  background: #ff5252;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+/* Success message */
+.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+  font-style: italic;
+}
 body {
     background: #fdf6ec;
     font-family: 'Segoe Ui', sans-serif;
