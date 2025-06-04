@@ -16,12 +16,6 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10
-   ssl: { rejectUnauthorized: false },
-  authPlugins: {
-    mysql_clear_password: () => () => {
-      return Buffer.from(`${process.env.DB_PASSWORD}\0`);
-    }
-  }
 });
 
 // Middleware
